@@ -72,7 +72,7 @@ class HadoopFileSystem::Impl {
     // silently accepts URIs but returns different results than if given the
     // equivalent in-filesystem paths.  Instead of raising cryptic errors
     // later, notify the underlying problem immediately.
-    if (path.substr(0, 5) == "hdfs:") {
+    if (path.substr(0, 5) == "hdfs:" || path.substr(0, 5) == "qbfs:") {
       return Status::Invalid("GetFileInfo must not be passed a URI, got: ", path);
     }
     FileInfo info;
@@ -131,7 +131,8 @@ class HadoopFileSystem::Impl {
 
   Result<std::vector<FileInfo>> GetFileInfo(const FileSelector& select) {
     // See GetFileInfo(const std::string&) above.
-    if (select.base_dir.substr(0, 5) == "hdfs:") {
+    if (select.base_dir.substr(0, 5) == "hdfs:" ||
+        select.base_dir.substr(0, 5) == "qbfs:") {
       return Status::Invalid("FileSelector.base_dir must not be a URI, got: ",
                              select.base_dir);
     }
@@ -474,7 +475,7 @@ bool HadoopFileSystem::Equals(const FileSystem& other) const {
 }
 
 Result<std::string> HadoopFileSystem::PathFromUri(const std::string& uri_string) const {
-  return internal::PathFromUriHelper(uri_string, {"hdfs", "viewfs"},
+  return internal::PathFromUriHelper(uri_string, {"hdfs", "viewfs", "qbfs"},
                                      /*accept_local_paths=*/false,
                                      internal::AuthorityHandlingBehavior::kIgnore);
 }

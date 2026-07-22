@@ -296,6 +296,25 @@ some environment variables.
   In contrast to the legacy HDFS filesystem with ``pa.hdfs.connect``, setting
   ``CLASSPATH`` is not optional (pyarrow will not attempt to infer it).
 
+QBFS is supported through the same ``libhdfs`` backend. Add the
+`QBFS filesystem JAR`_ to ``CLASSPATH`` alongside the Hadoop JARs, then use a
+``qbfs`` URI:
+
+.. code-block:: shell
+
+   export CLASSPATH="$(hadoop classpath --glob):/path/to/qbfs-filesystem-1.5.6.jar"
+
+.. code-block:: python
+
+   >>> qbfs, path = fs.FileSystem.from_uri("qbfs://online01/path/to/file")  # doctest: +SKIP
+
+The QBFS JAR must provide its Hadoop ``FileSystem`` implementation through the
+Java service loader. When constructing the filesystem directly, pass port 0:
+``fs.HadoopFileSystem("qbfs://online01", port=0)``.
+
+.. _QBFS filesystem JAR:
+   http://jfrog.cloud.qiyi.domain/artifactory/iqiyi-maven-cloudservice/com/iqiyi/bigdata/qbfs-filesystem/1.5.6/qbfs-filesystem-1.5.6.jar
+
 .. _filesystem-azurefs:
 
 Azure Storage File System

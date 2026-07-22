@@ -68,6 +68,27 @@ TEST(TestHdfsOptions, FromUri) {
   ASSERT_EQ(options.connection_config.host, "viewfs://other-nn");
   ASSERT_EQ(options.connection_config.port, 0);
   ASSERT_EQ(options.connection_config.user, "");
+
+  ASSERT_OK(uri.Parse("qbfs://online01/mypath/myfile"));
+  ASSERT_OK_AND_ASSIGN(options, HdfsOptions::FromUri(uri));
+  ASSERT_EQ(options.connection_config.host, "qbfs://online01");
+  ASSERT_EQ(options.connection_config.port, 0);
+  ASSERT_EQ(options.connection_config.user, "");
+}
+
+class UninitializedHadoopFileSystem : public HadoopFileSystem {
+ public:
+  UninitializedHadoopFileSystem()
+      : HadoopFileSystem(HdfsOptions{}, io::default_io_context()) {}
+};
+
+TEST(TestHadoopFileSystemUri, PathFromQbfsUri) {
+  UninitializedHadoopFileSystem fs;
+
+  ASSERT_OK_AND_ASSIGN(auto path, fs.PathFromUri("qbfs://online01/mypath/myfile"));
+  ASSERT_EQ(path, "/mypath/myfile");
+  ASSERT_OK_AND_ASSIGN(path, fs.PathFromUri("qbfs://online01/"));
+  ASSERT_EQ(path, "/");
 }
 
 class HadoopFileSystemTestMixin {

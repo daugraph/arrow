@@ -904,7 +904,7 @@ Result<std::shared_ptr<FileSystem>> FileSystemFromUriReal(const Uri& uri,
         "without GCS support");
 #endif
   }
-  if (scheme == "hdfs" || scheme == "viewfs") {
+  if (scheme == "hdfs" || scheme == "viewfs" || scheme == "qbfs") {
 #ifdef ARROW_HDFS
     ARROW_ASSIGN_OR_RAISE(auto options, HdfsOptions::FromUri(uri));
     if (out_path != nullptr) {
@@ -914,7 +914,7 @@ Result<std::shared_ptr<FileSystem>> FileSystemFromUriReal(const Uri& uri,
     return hdfs;
 #else
     return Status::NotImplemented(
-        "Got HDFS URI but Arrow compiled "
+        "Got Hadoop-compatible filesystem URI but Arrow compiled "
         "without HDFS support");
 #endif
   }

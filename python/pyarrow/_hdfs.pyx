@@ -28,13 +28,13 @@ from pyarrow.util import _stringify_path
 
 cdef class HadoopFileSystem(FileSystem):
     """
-    HDFS backed FileSystem implementation
+    Hadoop-compatible FileSystem implementation
 
     Parameters
     ----------
     host : str
-        HDFS host to connect to. Set to "default" for fs.defaultFS from
-        core-site.xml.
+        HDFS host or an HDFS, ViewFS, or QBFS URI to connect to. Set to
+        "default" for fs.defaultFS from core-site.xml.
     port : int, default 8020
         HDFS port to connect to. Set to 0 for default or logical (HA) nodes.
     user : str, default None
@@ -72,7 +72,8 @@ cdef class HadoopFileSystem(FileSystem):
             CHdfsOptions options
             shared_ptr[CHadoopFileSystem] wrapped
 
-        if not host.startswith(('hdfs://', 'viewfs://')) and host != "default":
+        if (not host.startswith(('hdfs://', 'viewfs://', 'qbfs://')) and
+                host != "default"):
             # TODO(kszucs): do more sanitization
             host = 'hdfs://{}'.format(host)
 
@@ -114,7 +115,8 @@ replication=1)``
         Parameters
         ----------
         uri : str
-            A string URI describing the connection to HDFS.
+            A string URI describing the connection to an HDFS-compatible
+            filesystem, including HDFS, ViewFS, and QBFS.
             In order to change the user, replication, buffer_size or
             default_block_size pass the values as query parts.
 

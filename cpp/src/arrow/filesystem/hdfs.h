@@ -54,10 +54,11 @@ struct ARROW_EXPORT HdfsOptions {
   static Result<HdfsOptions> FromUri(const std::string& uri);
 };
 
-/// HDFS-backed FileSystem implementation.
+/// Hadoop-compatible FileSystem implementation for HDFS, ViewFS, and QBFS.
 ///
 /// implementation notes:
-/// - This is a wrapper of arrow/io/hdfs, so we can use FileSystem API to handle hdfs.
+/// - This is a wrapper of arrow/io/hdfs, so Hadoop FileSystem implementations
+///   available to libhdfs through the Java classpath can use the FileSystem API.
 class ARROW_EXPORT HadoopFileSystem : public FileSystem {
  public:
   ~HadoopFileSystem() override;
