@@ -23,6 +23,7 @@ on:
     branches:
       - '**'
       - '!dependabot/**'
+      - '!arrow-20-qbfs'
     tags:
       - '**'
   pull_request:

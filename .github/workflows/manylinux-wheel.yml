@@ -1,0 +1,122 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+name: Build manylinux wheels
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arrow-20-qbfs
+    paths:
+      - '.github/workflows/manylinux-wheel.yml'
+      - '.env'
+      - 'ci/**'
+      - 'docker-compose.yml'
+      - 'cpp/**'
+      - 'dev/archery/**'
+      - 'python/**'
+
+concurrency:
+  group: manylinux-wheel-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ARCH: amd64
+  ARCHERY_DEBUG: 1
+  DOCKER_VOLUME_PREFIX: '.docker/'
+  VCPKG_BINARY_SOURCES: clear
+  WHEEL_VERSION: 20.0.0
+
+jobs:
+  build:
+    name: Python ${{ matrix.python }} manylinux2014 x86_64
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python: '3.9'
+            abi: cp39
+          - python: '3.10'
+            abi: cp310
+          - python: '3.11'
+            abi: cp311
+          - python: '3.12'
+            abi: cp312
+          - python: '3.13'
+            abi: cp313
+    env:
+      PYTHON: ${{ matrix.python }}
+      PYTHON_ABI_TAG: ${{ matrix.abi }}
+      PYTHON_IMAGE_TAG: ${{ matrix.python }}
+
+    steps:
+      - name: Checkout Arrow
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Free disk space
+        run: ci/scripts/util_free_space.sh
+
+      - name: Set up Python for Archery
+        uses: actions/setup-python@v6
+        with:
+          cache: pip
+          python-version: '3.12'
+
+      - name: Install Archery
+        run: pip install -e dev/archery[docker]
+
+      - name: Prepare clean wheel source
+        run: |
+          mkdir -p "${RUNNER_TEMP}/arrow-wheel-source"
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.docker' \
+            --exclude='python/build' \
+            --exclude='python/dist' \
+            --exclude='python/repaired_wheels' \
+            ./ "${RUNNER_TEMP}/arrow-wheel-source/"
+
+      - name: Build wheel
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "${RUNNER_TEMP}/arrow-wheel-source"
+          archery docker run \
+            -e SETUPTOOLS_SCM_PRETEND_VERSION="${WHEEL_VERSION}" \
+            python-wheel-manylinux-2014
+
+      - name: Test wheel imports
+        run: |
+          cd "${RUNNER_TEMP}/arrow-wheel-source"
+          archery docker run python-wheel-manylinux-test-imports
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v7
+        with:
+          if-no-files-found: error
+          name: pyarrow-qbfs-${{ matrix.abi }}-manylinux2014_x86_64
+          path: ${{ runner.temp }}/arrow-wheel-source/python/repaired_wheels/*.whl
+          retention-days: 14
